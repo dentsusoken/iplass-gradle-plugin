@@ -1,0 +1,197 @@
+= iplass-gradle-plugin
+
+このプラグインは、iPLAss を利用したシステム開発の支援を行います。
+
+== iPLAss サポート
+
+.compatibility matrix
+[cols="1,1,1",options="header"]
+|===
+|iPLAss
+|java
+|gradle
+
+|3.2.20 or later
+|1.8, 11, 17
+|8.6 or later
+
+|4.0.x
+|21
+|8.6 or later
+|===
+
+
+== build.gradle 設定について
+
+本 plugin では、iPLAss ライブラリ（関連Runtimeを含む）を利用するため、iPLAss を利用するための設定が必要となります。
+
+link:https://github.com/dentsusoken/iplass-skeleton[skeleton] の build.gradle を確認してください。
+
+
+== plugin 設定方法
+[source, groovy]
+----
+plugins {
+  id 'org.iplass.dev' version '1.0.0'
+}
+----
+
+[source, groovy]
+----
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "org.iplass.dev:iplass-gradle-plugin:1.0.0"
+  }
+}
+
+apply plugin: "org.iplass.dev"
+----
+
+== extension 設定方法
+
+.最小設定
+[source, groovy]
+----
+configure(iplass) {
+  tenantId = 1
+}
+----
+
+.説明
+[cols="2,1,2,4",options="header"]
+|===
+|property
+|type
+|default value
+|note
+
+|tenantId ^*必須*^
+|Integer
+|
+|iPLAss テナントIDを設定する。
+
+|serviceConfig
+|String
+|
+|iPLAss で利用する Service-Config xml ファイルパスもしくはクラスパスリソースを指定する。 +
+設定が無い場合は、iPLAss デフォルトの動作となる。
+
+|language
+|String ('en'\|'ja'\|'system')
+|'system'
+|タスク実行時の言語を設定する
+
+|classpath
+|FileCollection
+|sourceSets.main. +
+runtimeClasspath
+|タスク実行時の iPLAss Runtime クラスパスを指定する
+|===
+
+.設定例
+[source, groovy]
+----
+configure(iplass) {
+  // required
+  tenantId = 1
+
+  // optional
+  serviceConfig = '/path/to/mtp-service-config.xml'
+  language = 'system'
+  classpath = sourceSets.main.runtimeClasspath
+}
+----
+
+== tasks
+
+プラグインとしてタスクを用意しています。 +
+タスク共通の設定値として、次の設定値を利用することができます。タスクの設定値はすべて任意設定です。
+
+.タスク設定値説明
+[cols="2,1,2,4",options="header"]
+|===
+|property
+|type
+|default value
+|note
+
+|serviceConfig
+|String
+|
+|iPLAss で利用する Service-Config xml ファイルパスもしくはクラスパスリソースを指定する。 +
+extension の設定値よりも、タスク設定値を優先して利用する。
+
+|jvmArgs
+|List<String>
+|
+|タスク実行時の vm 引数を設定する。
+
+|===
+
+.設定例
+[source, groovy]
+----
+// TASK_NAME は設定するタスク名に置き換えてください
+TASK_NAME {
+  serviceConfig = '/path/to/mtp-service-config.xml'
+  jvmArgs = ['-Xmx2048m']
+}
+----
+
+=== metaConvertRdbToFile
+バッチツール MetaData File Export を plugin から SILENT モードで実行します。 + 
+RDB管理されているすべてのメタデータをファイルへ変換します。タスクの固有の設定値はありません。
+
+詳しい説明は link:https://iplass.org/en/docs/developerguide/support/index.html#batch_meta_export_rdb_to_file[こちら] を参照ください。
+
+=== metaSyncRdbToFile
+バッチツール MetaData File Export を plugin から SILENT モードで実行します。 + 
+ServiceConfigの設定でRDB管理しているメタデータをファイルへ変換します。タスクの固有の設定値は以下の通りです。
+
+.metaConvertRdbToFile タスク設定値説明
+[cols="2,1,2,4",options="header"]
+|===
+|property
+|type
+|default value
+|note
+
+|source
+|List<String>
+|
+|ServiceConfig の設定でRDB管理しているメタデータ抽出対象のパスを指定する。未指定の場合はRDB管理されている全メタデータを対象とする。 
+パス指定にはワイルドカードを指定可能。 +
+（設定例： `['/entity/*', '/staticresource/*']`）
+
+|===
+
+.設定例
+[source, groovy]
+----
+metaSyncRdbToFile {
+  source = ['/entity/*']
+}
+----
+
+詳しい説明は link:https://iplass.org/en/docs/developerguide/support/index.html#batch_meta_export_rdb_to_file[こちら] を参照ください。
+
+=== entityViewDdl
+バッチツール Entity View を plugin から WIZARD モードで実行します。 +
+タスクの固有の設定値はありません。
+
+詳しい説明は link:https://iplass.org/en/docs/developerguide/support/index.html#entity_view[こちら] を参照ください。
+
+=== serviceConfigView
+バッチツール service-config viewer を plugin から実行します。 +
+タスクの固有の設定値はありません。
+
+詳しい説明は link:https://iplass.org/en/docs/developerguide/support/index.html#_service_config_viewer[こちら] を参照ください。
+
+
+== License
+link:https://www.apache.org/licenses/LICENSE-2.0[Apache License, Version 2.0] でライセンスされています。

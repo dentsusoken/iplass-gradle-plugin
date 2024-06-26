@@ -1,0 +1,197 @@
+= iplass-gradle-plugin
+
+This plug-in provides support for system development using iPLAss.
+
+== iPLAss Support
+
+.compatibility matrix
+[cols="1,1,1",options="header"]
+|===
+|iPLAss
+|java
+|gradle
+
+|3.2.20 or later
+|1.8, 11, 17
+|8.6 or later
+
+|4.0.x
+|21
+|8.6 or later
+|===
+
+== About build.gradle configuration
+
+This plugin uses the iPLAss library (including the associated Runtime), so configuration for using iPLAss is required.
+
+Check the link:https://github.com/dentsusoken/iplass-skeleton[skeleton's] build.gradle.
+
+
+== How to set up plugin
+[source, groovy]
+----
+plugins {
+  id 'org.iplass.dev' version '1.0.0'
+}
+----
+
+[source, groovy]
+----
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "org.iplass.dev:iplass-gradle-plugin:1.0.0"
+  }
+}
+
+apply plugin: "org.iplass.dev"
+----
+
+== How to set up extension
+
+.Minimum setting
+[source, groovy]
+----
+configure(iplass) {
+  tenantId = 1
+}
+----
+
+.Description.
+[cols="2,1,2,4",options="header"]
+|===
+|property
+|type
+|default value
+|note
+
+|tenantId ^*required*^
+|Integer
+|
+|Set the iPLAss tenant ID.
+
+|serviceConfig
+|String
+|
+|Specify the Service-Config xml file path or classpath resource to be used by iPLAss. +
+If not set, iPLAss default behavior is used.
+
+|language
+|String ('en'\|'ja'\|'system')
+|'system'
+|Set the language for task execution.
+
+|classpath
+|FileCollection
+|sourceSets.main. +
+runtimeClasspath
+|Specify the iPLAss Runtime classpath when executing the task.
+
+|===
+
+.Setting Example
+[source, groovy]
+----
+configure(iplass) {
+  // required
+  tenantId = 1
+
+  // optional
+  serviceConfig = '/path/to/mtp-service-config.xml'
+  language = 'en'
+  classpath = sourceSets.main.runtimeClasspath
+}
+----
+
+== tasks
+
+Tasks are available as plugins. +
+The following configuration values are available as common task configuration values. All task configuration values are optional.
+
+.Explanation of task set values
+[cols="2,1,2,4",options="header"]
+|===
+|property
+|type
+|default value
+|note
+
+|serviceConfig
+|String
+|
+|Specify the Service-Config xml file path or classpath resource to be used by iPLAss. +
+The task setting value is used in preference to the extension setting value.
+
+|jvmArgs
+|List<String>
+|
+|Sets the vm argument for task execution.
+
+|===
+
+.Setting Example
+[source, groovy]
+----
+// Replace TASK_NAME with the name of the task to be set
+TASK_NAME {
+  serviceConfig = '/path/to/mtp-service-config.xml'
+  jvmArgs = ['-Xmx2048m']
+}
+----
+
+
+=== metaConvertRdbToFile
+Run the batch tool MetaData File Export from the plugin in SILENT mode. +
+Convert all RDB managed metadata to file. There are no task-specific configuration values.
+
+For a detailed explanation, please click link:https://iplass.org/en/docs/developerguide/support/index.html#batch_meta_export_rdb_to_file[here].
+
+=== metaSyncRdbToFile
+Run the batch tool MetaData File Export from the plugin in SILENT mode. +
+Converts RDB-managed metadata to files with ServiceConfig settings. Task-specific configuration values are as follows
+
+.Explanation of metaConvertRdbToFile task set values
+[cols="2,1,2,4",options="header"]
+|===
+|property
+|type
+|default value
+|note
+
+|source
+|List<String>
+|
+|Specify the path for RDB-managed metadata extraction in the ServiceConfig settings. If not specified, all RDB-managed metadata is targeted. Wildcards can be specified for path specification. +
+( e.g. `['/entity/*', '/staticresource/*']` )
+
+|===
+
+.Setting Example
+[source, groovy]
+----
+metaSyncRdbToFile {
+  source = ['/entity/*']
+}
+----
+
+For a detailed explanation, please click link:https://iplass.org/en/docs/developerguide/support/index.html#batch_meta_export_rdb_to_file[here].
+
+=== entityViewDdl
+Run the batch tool Entity View from the plugin in WIZARD mode. +
+There are no task-specific configuration values.
+
+For a detailed explanation, please click link:https://iplass.org/en/docs/developerguide/support/index.html#entity_view[here].
+
+=== serviceConfigView
+Run the batch tool service-config viewer from the plugin. +
+There are no task-specific configuration values.
+
+For a detailed explanation, please click link:https://iplass.org/en/docs/developerguide/support/index.html#_service_config_viewer[here].
+
+
+== License
+Licensed under the link:https://www.apache.org/licenses/LICENSE-2.0[Apache License, Version 2.0].

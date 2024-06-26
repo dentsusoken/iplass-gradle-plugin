@@ -1,0 +1,81 @@
+plugins {
+	id 'com.gradle.plugin-publish' version '1.2.1'
+	id 'java'
+	id 'eclipse'
+}
+
+repositories {
+	mavenCentral()
+}
+
+def pluginGroup = 'org.iplass.dev'
+def pluginArtfifactId = project.name
+def pluginVersion = project.getProperty('pluginVersion')
+def vendor = project.getProperty('vendor')
+
+group pluginGroup
+version pluginVersion
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_1_8
+	targetCompatibility = JavaVersion.VERSION_1_8
+
+	withJavadocJar()
+	withSourcesJar()
+}
+
+javadoc {
+	options.encoding = 'UTF-8'
+	options.docEncoding = 'UTF-8'
+	failOnError = false
+}
+
+jar {
+	into('META-INF') {
+		from layout.projectDirectory.file('LICENSE')
+	}
+	manifest {
+		attributes(
+			'Created-By': "${System.getProperty('java.version')} (${System.getProperty('java.vendor')})",
+			'Implementation-Title': pluginArtfifactId,
+			'Implementation-Version': pluginVersion,
+			'Implementation-Vendor': vendor,
+			'Build-Date': ZonedDateTime.now(ZoneId.of("UTC")).format(java.time.format.DateTimeFormatter.ISO_INSTANT)
+		)
+	}
+}
+
+tasks.withType(AbstractCompile) {
+	options.encoding = 'UTF-8'
+}
+
+sourceSets {
+	main {
+		java {
+			exclude '.gitkeep'
+		}
+		resources {
+			exclude '.gitkeep'
+		}
+	}
+}
+
+dependencies {
+	implementation gradleApi()
+	
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+gradlePlugin {
+	website = 'https://iplass.org'
+	vcsUrl = 'https://github.com/dentsusoken/iplass-gradle-plugin'
+	plugins {
+			create('developPlugin') {
+					id = 'org.iplass.dev'
+					implementationClass = 'org.iplass.mtp.dev.gradle.RootPlugin'
+					displayName = 'iPLAss develop plugin.'
+					description = 'This plugin supports the development of iPLAss.'
+					tags.addAll('iplass', 'develop')
+			}
+	}
+}
