@@ -1,6 +1,6 @@
 = iplass-gradle-plugin
 
-このプラグインは、iPLAss を利用したシステム開発の支援を行います。
+このプラグインは、iPLAss ( https://github.com/dentsusoken/iPLAss ) を利用したシステム開発の支援を行います。
 
 == iPLAss サポート
 
