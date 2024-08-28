@@ -166,7 +166,7 @@ Converts RDB-managed metadata to files with ServiceConfig settings. Task-specifi
 |List<String>
 |
 |Specify the path for RDB-managed metadata extraction in the ServiceConfig settings. If not specified, all RDB-managed metadata is targeted. Wildcards can be specified for path specification. +
-( e.g. `['/entity/*', '/staticresource/*']` )
+( e.g. `['/entity/{asterisk}', '/staticresource/{asterisk}']` )
 
 |===
 

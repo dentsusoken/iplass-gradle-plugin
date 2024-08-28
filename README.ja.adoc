@@ -166,7 +166,7 @@ ServiceConfigの設定でRDB管理しているメタデータをファイルへ�
 |
 |ServiceConfig の設定でRDB管理しているメタデータ抽出対象のパスを指定する。未指定の場合はRDB管理されている全メタデータを対象とする。 
 パス指定にはワイルドカードを指定可能。 +
-（設定例： `['/entity/*', '/staticresource/*']`）
+（設定例： `['/entity/{asterisk}', '/staticresource/{asterisk}']`）
 
 |===
 
