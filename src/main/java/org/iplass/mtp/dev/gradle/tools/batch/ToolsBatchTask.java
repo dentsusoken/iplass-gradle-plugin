@@ -38,7 +38,7 @@ import org.iplass.mtp.dev.gradle.PropertyFileUtil;
  */
 public abstract class ToolsBatchTask<T extends ToolsBatchTaskConfig> extends JavaBatchTask {
 	/** task configuration */
-	private T taskConfig;
+	private final T taskConfig;
 
 	/**
 	 * constructor
@@ -56,24 +56,12 @@ public abstract class ToolsBatchTask<T extends ToolsBatchTaskConfig> extends Jav
 	}
 
 	@Override
-	protected void configure(JavaExecSpec spec) {
+	protected void configureJavaExecSpec(JavaExecSpec spec) {
 		spec.getMainClass().set(taskConfig.getMainClass());
 
 		ifExists(taskConfig.getArgs(), v -> spec.args(v));
 		if (taskConfig.isUseStandardInput()) {
 			spec.setStandardInput(System.in);
-		}
-	}
-
-	/**
-	 * If the value is not null, the process is executed.
-	 * @param <V> value type.
-	 * @param value the value.
-	 * @param process execute process.
-	 */
-	protected <V> void ifNotNull(V value, Consumer<V> process) {
-		if (null != value) {
-			process.accept(value);
 		}
 	}
 
@@ -84,7 +72,7 @@ public abstract class ToolsBatchTask<T extends ToolsBatchTaskConfig> extends Jav
 	 * @param process execute process.
 	 */
 	protected <V> void ifExists(List<V> value, Consumer<List<V>> process) {
-		if (null != value && 0 < value.size()) {
+		if (null != value && !value.isEmpty()) {
 			process.accept(value);
 		}
 	}

@@ -15,16 +15,15 @@
  */
 package org.iplass.mtp.dev.gradle;
 
+import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
-import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.SourceSet;
-import org.gradle.process.ExecResult;
 import org.gradle.process.JavaExecSpec;
 
 /**
@@ -47,13 +46,6 @@ public abstract class JavaBatchTask extends AbstractTask {
 	abstract protected Property<String> getServiceConfig();
 
 	/**
-	 * @return java exec jvm args
-	 */
-	@Input
-	@Optional
-	abstract protected ListProperty<String> getJvmArgs();
-
-	/**
 	 * default constructor.
 	 */
 	public JavaBatchTask() {
@@ -64,51 +56,66 @@ public abstract class JavaBatchTask extends AbstractTask {
 	}
 
 	@Override
-	public void doTask() {
+	public void exec() {
 		try {
 			beforeTask();
-			ExecResult result = getProject().javaexec(this::configureInner);
-			result.assertNormalExitValue().rethrowFailure();
+
+			super.exec();
+
+			if (getExecutionResult().isPresent()) {
+				getExecutionResult().get().assertNormalExitValue().rethrowFailure();
+
+			} else {
+				getLogger().warn(getName() + " task execution result is not available.");
+			}
 
 		} finally {
 			afterTask();
 		}
 	}
 
+	@Override
+	protected void projectAfterEvaluate(Project project) {
+		configureJavaExecSpecInner(this);
+	}
+
 	/**
 	 * javaexec configure. internal use.
 	 * @param spec JavaExecSpec
 	 */
-	private void configureInner(JavaExecSpec spec) {
-
+	private void configureJavaExecSpecInner(JavaExecSpec spec) {
 		JavaPluginExtension javaPluginExtension = getProject().getExtensions().getByType(JavaPluginExtension.class);
 
-		spec.jvmArgs("-Dbatch.language=" + getLanguage());
+		spec.getJvmArguments().add("-Dbatch.language=" + getLanguage());
 
 		String serviceConfigPath = getServiceConfigPath();
 		if (null != serviceConfigPath) {
-			spec.jvmArgs("-Dmtp.config=" + getServiceConfigPath());
+			spec.getJvmArguments().add("-Dmtp.config=" + getServiceConfigPath());
 		}
 
-		if (getJvmArgs().isPresent()) {
-			spec.jvmArgs(getJvmArgs().get());
+		if (getJvmArgs() != null && !getJvmArgs().isEmpty()) {
+			spec.getJvmArguments().addAll(getJvmArgs());
 		}
 
 		FileCollection classpathFiles = getPluginExtension().getClasspath().isEmpty()
 				// src/main/* and configurations.runtimeClasspath
 				? javaPluginExtension.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME).getRuntimeClasspath()
-				// set extension value
-				: getPluginExtension().getClasspath();
+						// set extension value
+						: getPluginExtension().getClasspath();
 
 		classpathFiles.forEach(f -> spec.classpath(f));
 
-		configure(spec);
+		configureJavaExecSpec(spec);
 	}
 
 	/**
 	 * Implement task execution pre-processing as needed.
 	 */
 	protected void beforeTask() {
+		removeTemporaryDir();
+		if (!getTemporaryDir().mkdirs()) {
+			getLogger().warn("Failed to create temporary directory: " + getTemporaryDir().getAbsolutePath());
+		}
 	}
 
 	/**
@@ -125,7 +132,7 @@ public abstract class JavaBatchTask extends AbstractTask {
 	 * Configure Java execution settings.
 	 * @param spec JavaExecSpec
 	 */
-	protected abstract void configure(JavaExecSpec spec);
+	protected abstract void configureJavaExecSpec(JavaExecSpec spec);
 
 	/**
 	 * Get display language.
@@ -152,6 +159,17 @@ public abstract class JavaBatchTask extends AbstractTask {
 	 */
 	@Internal
 	protected String getServiceConfigPath() {
-		return getServiceConfig().getOrElse(getPluginExtension().getServiceConfig().getOrElse(null));
+		return getServiceConfig().getOrElse(getPluginExtension().getServiceConfig().getOrNull());
+	}
+
+	/**
+	 * Delete temporary directories.
+	 */
+	private void removeTemporaryDir() {
+		if (getTemporaryDir().exists()) {
+			getFileSystemOperations().delete(action -> {
+				action.delete(getTemporaryDir());
+			});
+		}
 	}
 }
