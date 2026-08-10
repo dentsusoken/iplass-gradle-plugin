@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
@@ -32,49 +33,40 @@ import org.iplass.mtp.dev.gradle.PropertyFileUtil;
  * A task that executes the processing of the tools batch that sets the vmargs in meta.config.
  *
  * <p>
- * If any of the following keywords are present in the property value, the value is replaced.
+ * If a property value contains any of the {@link ReplaceKeys} managed keywords, that value will be replaced.
  * </p>
- *
- * <ul>
- * <li>{tenantId} - extension tenantId</li>
- * <li>{source} - source of task properties</li>
- * </ul>
  *
  * @author SEKIGUCHI Naoya
  */
 public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatchMetaConfigTaskConfig> {
+	/** tenantId obtained {@link org.iplass.mtp.dev.gradle.RootPluginExtension#getTenantId()} */
+	private String tenantId;
+
 	/**
-	 * @return meta.soruce property value in the meta configuration file.
+	 * @return meta.source property value in the meta configuration file.
 	 */
 	@Input
 	@Optional
 	abstract protected ListProperty<String> getSource();
 
 	@Override
-	protected void beforeTask() {
-		getLogger().info("inputs.properties = {}", getInputs().getProperties());
+	protected void configureJavaExecSpec(JavaExecSpec spec) {
+		super.configureJavaExecSpec(spec);
 
-		Map<String, String> config = new HashMap<>(getTaskConfig().getMetaConfig());
-
-		getLogger().info("before config = {}", config);
-		// replacement "{tenantId}", "{source}" keywords.
-		replaceConfigValue(config, ReplaceKeys.TENANT_ID, String.valueOf(getPluginExtension().getTenantId().get()));
-		replaceConfigValue(config, ReplaceKeys.SOURCE, String.join(",", getSource().getOrElse(Collections.emptyList())));
-		getLogger().info("after config = {}", config);
-
-		PropertyFileUtil.save(getPropertyFile(), config);
+		spec.getJvmArguments().add("-Dmeta.config=" + getPropertyFile().getAbsolutePath());
 	}
 
 	@Override
-	protected void configure(JavaExecSpec spec) {
-		super.configure(spec);
-
-		spec.jvmArgs("-Dmeta.config=" + getPropertyFile().getAbsolutePath());
+	protected void projectAfterEvaluate(Project project) {
+		super.projectAfterEvaluate(project);
+		// Extensions must not be referenced while a TaskAction is running.
+		this.tenantId = String.valueOf(getPluginExtension().getTenantId().get());
 	}
 
-	private File getPropertyFile() {
-		// /temp/dir/taskname_config.properties
-		return Paths.get(getTemporaryDir().getAbsolutePath(), getName() + "_config.properties").toFile();
+	@Override
+	protected void beforeTask() {
+		super.beforeTask();
+		initializeInputPropertiesFile();
 	}
 
 	@Override
@@ -82,6 +74,49 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 		return new ToolsBatchMetaConfigTaskConfig(props);
 	}
 
+	/**
+	 * Initialize the input properties file.
+	 *
+	 * <p>
+	 * The input properties file is created in the temporary directory and is used as the value of the {@code meta.config} system property.
+	 * </p>
+	 */
+	private void initializeInputPropertiesFile() {
+		getLogger().info("inputs.properties = {}", getInputs().getProperties());
+
+		Map<String, String> config = new HashMap<>(getTaskConfig().getMetaConfig());
+
+		getLogger().info("before config = {}", config);
+		// replacement "{tenantId}", "{source}" keywords.
+		replaceConfigValue(config, ReplaceKeys.TENANT_ID, tenantId);
+		replaceConfigValue(config, ReplaceKeys.SOURCE, String.join(",", getSource().getOrElse(Collections.emptyList())));
+		getLogger().info("after config = {}", config);
+
+		PropertyFileUtil.save(getPropertyFile(), config);
+	}
+
+
+	/**
+	 * Get the property file used as the value of the {@code meta.config} system property.
+	 *
+	 * <p>
+	 * The property file is created in the temporary directory and is named {@code taskname_config.properties}.
+	 * </p>
+	 *
+	 * @return the property file
+	 */
+	private File getPropertyFile() {
+		// /temp/dir/taskname_config.properties
+		return Paths.get(getTemporaryDir().getAbsolutePath(), getName() + "_config.properties").toFile();
+	}
+
+	/**
+	 * Replace the value of the specified key in the config map if it contains the specified target keyword.
+	 *
+	 * @param config the config map
+	 * @param target the target keyword to replace
+	 * @param replaceValue the value to replace with
+	 */
 	private void replaceConfigValue(Map<String, String> config, String target, String replaceValue) {
 		String checkKey = "{" + target + "}";
 		String replaceKey = "\\{" + target + "\\}";
@@ -105,6 +140,12 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 		public static final String TENANT_ID = "tenantId";
 		/** Metadata Target Path. Comma-separated if there are multiple, or all if not specified. */
 		public static final String SOURCE = "source";
+
+		/**
+		 * private constructor
+		 */
+		private ReplaceKeys() {
+		}
 	}
 
 }

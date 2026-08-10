@@ -15,50 +15,35 @@
  */
 package org.iplass.mtp.dev.gradle;
 
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
+import javax.inject.Inject;
 
-import org.gradle.api.DefaultTask;
+import org.gradle.api.Project;
+import org.gradle.api.file.FileSystemOperations;
 import org.gradle.api.tasks.Internal;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.JavaExec;
 
 /**
  * task abstract class.
  *
- * <p>
- * If this class is inherited, {@link #doTask()} must be implemented.
- * </p>
- *
  * @author SEKIGUCHI Naoya
  */
-public abstract class AbstractTask extends DefaultTask {
+public abstract class AbstractTask extends JavaExec {
 	/**
 	 * constructor
 	 */
 	public AbstractTask() {
 		setGroup("iPLAss develop");
+
+		getProject().afterEvaluate(project -> {
+			projectAfterEvaluate(project);
+		});
 	}
 
 	/**
-	 * task entry point
+	 * Implement individual processing after project evaluation.
+	 * @param project Project instance.
 	 */
-	@TaskAction
-	public void taskAction() {
-		removeTemporaryDir();
-		getTemporaryDir().mkdirs();
-
-		doTask();
-	}
-
-	/**
-	 * Implement individual processing of tasks.
-	 */
-	public abstract void doTask();
+	protected abstract void projectAfterEvaluate(Project project);
 
 	/**
 	 * Get {@link RootPluginExtension} instance.
@@ -77,42 +62,12 @@ public abstract class AbstractTask extends DefaultTask {
 	 */
 	@Internal
 	protected <T> T getChildExtension(Class<T> type) {
-		return getProject().getExtensions().getByType(RootPluginExtension.class).getExtensions().getByType(type);
+		return getPluginExtension().getExtensions().getByType(type);
 	}
 
 	/**
-	 * Delete temporary directories.
+	 * @return {@link FileSystemOperations} instance.
 	 */
-	private void removeTemporaryDir() {
-		if (getTemporaryDir().exists()) {
-			try {
-				Files.walkFileTree(Paths.get(getTemporaryDir().toURI()), new FileVisitor<Path>() {
-
-					@Override
-					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-						return FileVisitResult.CONTINUE;
-					}
-
-					@Override
-					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-						Files.delete(file);
-						return FileVisitResult.CONTINUE;
-					}
-
-					@Override
-					public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-						return FileVisitResult.CONTINUE;
-					}
-
-					@Override
-					public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-						Files.delete(dir);
-						return FileVisitResult.CONTINUE;
-					}
-				});
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
+	@Inject
+	protected abstract FileSystemOperations getFileSystemOperations();
 }

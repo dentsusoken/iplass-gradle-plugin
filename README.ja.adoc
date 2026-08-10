@@ -5,19 +5,42 @@
 == iPLAss サポート
 
 .compatibility matrix
-[cols="1,1,1",options="header"]
+[cols="1,1,1,1",options="header"]
 |===
+|plugin
 |iPLAss
 |java
 |gradle
 
+|1.0.0
 |3.2.20 or later
 |1.8, 11, 17
-|8.6 or later
+|8.6 以降 9 未満
 
+|1.0.0
 |4.0.x
 |21
-|8.6 or later
+|8.6 以降 9 未満
+
+|1.0.0
+|4.1.x
+|21
+|8.6 以降 9 未満
+
+|1.1.0
+|3.2.20 or later
+|NOT SUPPORTED
+|-
+
+|1.1.0
+|4.0.x
+|21
+|9.6.1 以降
+
+|1.1.0
+|4.1.x
+|21
+|9.6.1 以降
 |===
 
 
@@ -32,24 +55,8 @@ link:https://github.com/dentsusoken/iplass-skeleton[skeleton] の build.gradle �
 [source, groovy]
 ----
 plugins {
-  id 'org.iplass.dev' version '1.0.0'
+  id 'org.iplass.dev' version '1.1.0'
 }
-----
-
-[source, groovy]
-----
-buildscript {
-  repositories {
-    maven {
-      url "https://plugins.gradle.org/m2/"
-    }
-  }
-  dependencies {
-    classpath "org.iplass.dev:iplass-gradle-plugin:1.0.0"
-  }
-}
-
-apply plugin: "org.iplass.dev"
 ----
 
 == extension 設定方法
