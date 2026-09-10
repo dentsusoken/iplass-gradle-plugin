@@ -70,7 +70,7 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 	protected void beforeTask() {
 		super.beforeTask();
 
-		if (null == tenantId || tenantId.isEmpty()) {
+		if (null == tenantId) {
 			throw new IllegalStateException(
 					"tenantId is not set. Please set the tenantId property for the " + RootPlugin.EXTENSION_NAME + " extension.");
 		}
