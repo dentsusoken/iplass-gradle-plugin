@@ -28,6 +28,7 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
 import org.gradle.process.JavaExecSpec;
 import org.iplass.mtp.dev.gradle.PropertyFileUtil;
+import org.iplass.mtp.dev.gradle.RootPlugin;
 
 /**
  * A task that executes the processing of the tools batch that sets the vmargs in meta.config.
@@ -60,12 +61,20 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 	protected void projectAfterEvaluate(Project project) {
 		super.projectAfterEvaluate(project);
 		// Extensions must not be referenced while a TaskAction is running.
-		this.tenantId = String.valueOf(getPluginExtension().getTenantId().get());
+		if (getPluginExtension().getTenantId().isPresent()) {
+			this.tenantId = String.valueOf(getPluginExtension().getTenantId().get());
+		}
 	}
 
 	@Override
 	protected void beforeTask() {
 		super.beforeTask();
+
+		if (null == tenantId || tenantId.isEmpty()) {
+			throw new IllegalStateException(
+					"tenantId is not set. Please set the tenantId property for the " + RootPlugin.EXTENSION_NAME + " extension.");
+		}
+
 		initializeInputPropertiesFile();
 	}
 
