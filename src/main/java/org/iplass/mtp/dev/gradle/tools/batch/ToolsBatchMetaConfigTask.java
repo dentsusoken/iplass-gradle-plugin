@@ -24,6 +24,7 @@ import java.util.Properties;
 
 import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
@@ -80,12 +81,13 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 	@UseWithinTaskAction
 	@Internal
 	protected String getTenantId() {
-		if (!getRootPluginExtension().getTenantId().isPresent()) {
+		Property<Integer> tenantIdProperty = getRootPluginExtension().getTenantId();
+		if (!tenantIdProperty.isPresent()) {
 			throw new IllegalStateException(
 					"tenantId is not set. Please set the tenantId property of the " + RootPlugin.EXTENSION_NAME + " extension.");
 		}
 
-		return getRootPluginExtension().getTenantId().map(String::valueOf).getOrElse("");
+		return tenantIdProperty.map(String::valueOf).getOrElse("");
 	}
 
 	/**
