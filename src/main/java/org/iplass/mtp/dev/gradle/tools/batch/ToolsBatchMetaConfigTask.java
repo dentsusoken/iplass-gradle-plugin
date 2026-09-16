@@ -82,7 +82,7 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 	protected String getTenantId() {
 		if (!getRootPluginExtension().getTenantId().isPresent()) {
 			throw new IllegalStateException(
-					"tenantId is not set. Please set the tenantId property for the " + RootPlugin.EXTENSION_NAME + " extension.");
+					"tenantId is not set. Please set the tenantId property of the " + RootPlugin.EXTENSION_NAME + " extension.");
 		}
 
 		return getRootPluginExtension().getTenantId().map(String::valueOf).getOrElse("");
