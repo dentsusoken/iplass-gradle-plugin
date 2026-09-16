@@ -20,6 +20,9 @@ import org.gradle.api.Project;
 
 /**
  * Plugin for tools-batch.
+ * <p>
+ * Register tasks derived from {@link org.iplass.mtp.dev.gradle.tools.batch.ToolsBatchTask}.
+ * </p>
  *
  * @author SEKIGUCHI Naoya
  */
@@ -41,5 +44,8 @@ public class ToolsBatchPlugin implements Plugin<Project> {
 
 		project.getTasks().register(META_CONVERT_RDB_TO_FILE_TASK_NAME, ToolsBatchMetaConfigTask.class);
 		project.getTasks().register(META_SYNC_RDB_TO_FILE_TASK_NAME, ToolsBatchMetaConfigTask.class);
+
+		// configure tasks.
+		project.getTasks().withType(ToolsBatchTask.class).configureEach(task -> task.onConfigureTask(project));
 	}
 }
