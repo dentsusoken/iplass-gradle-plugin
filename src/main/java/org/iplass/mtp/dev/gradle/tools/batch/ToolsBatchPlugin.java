@@ -20,6 +20,9 @@ import org.gradle.api.Project;
 
 /**
  * Plugin for tools-batch.
+ * <p>
+ * Register tasks derived from {@link org.iplass.mtp.dev.gradle.tools.batch.ToolsBatchTask}.
+ * </p>
  *
  * @author SEKIGUCHI Naoya
  */
