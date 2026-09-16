@@ -19,50 +19,55 @@ import javax.inject.Inject;
 
 import org.gradle.api.Project;
 import org.gradle.api.file.FileSystemOperations;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
 
 /**
- * task abstract class.
+ * Abstract base class for plugin tasks.
+ * <p>
+ * When a task is configured, instances of JavaPluginExtension and RootPluginExtension are initialized.
+ * </p>
  *
  * @author SEKIGUCHI Naoya
  */
 public abstract class AbstractTask extends JavaExec {
-	/**
-	 * constructor
-	 */
-	public AbstractTask() {
-		setGroup("iPLAss develop");
+	/** JavaPluginExtension instance */
+	private JavaPluginExtension javaPluginExtension;
+	/** RootPluginExtension instance */
+	private RootPluginExtension rootPluginExtension;
 
-		getProject().afterEvaluate(project -> {
-			projectAfterEvaluate(project);
-		});
+	/**
+	 * Called when the task is configured.
+	 * <p>
+	 * This is a method for internal configuration by the plugin.
+	 * </p>
+	 *
+	 * @param project the project to which the task belongs.
+	 */
+	public void onConfigureTask(Project project) {
+		this.javaPluginExtension = project.getExtensions().getByType(JavaPluginExtension.class);
+		this.rootPluginExtension = project.getExtensions().getByType(RootPluginExtension.class);
+
+		setGroup("iPLAss develop");
 	}
 
 	/**
-	 * Implement individual processing after project evaluation.
-	 * @param project Project instance.
+	 * Get {@link JavaPluginExtension} instance.
+	 * @return {@link JavaPluginExtension} instance.
 	 */
-	protected abstract void projectAfterEvaluate(Project project);
+	@Internal
+	protected JavaPluginExtension getJavaPluginExtension() {
+		return javaPluginExtension;
+	}
 
 	/**
 	 * Get {@link RootPluginExtension} instance.
 	 * @return {@link RootPluginExtension} instance.
 	 */
 	@Internal
-	protected RootPluginExtension getPluginExtension() {
-		return getProject().getExtensions().getByType(RootPluginExtension.class);
-	}
-
-	/**
-	 * Get the child Extension of {@link RootPluginExtension}.
-	 * @param <T> Type of child extension.
-	 * @param type Class of child extension.
-	 * @return Instance of child extension.
-	 */
-	@Internal
-	protected <T> T getChildExtension(Class<T> type) {
-		return getPluginExtension().getExtensions().getByType(type);
+	protected RootPluginExtension getRootPluginExtension() {
+		return rootPluginExtension;
 	}
 
 	/**

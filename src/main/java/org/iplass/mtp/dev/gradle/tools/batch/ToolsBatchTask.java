@@ -21,13 +21,13 @@ import java.util.List;
 import java.util.Properties;
 import java.util.function.Consumer;
 
+import org.gradle.api.Project;
 import org.gradle.api.tasks.Internal;
-import org.gradle.process.JavaExecSpec;
 import org.iplass.mtp.dev.gradle.JavaBatchTask;
 import org.iplass.mtp.dev.gradle.PropertyFileUtil;
 
 /**
- * Tasks to perform processing in the tools batch
+ * Tasks to perform processing in the tools batch.
  *
  * <p>
  * The task configuration is defined in a property file with the same name as the task name.
@@ -38,13 +38,11 @@ import org.iplass.mtp.dev.gradle.PropertyFileUtil;
  */
 public abstract class ToolsBatchTask<T extends ToolsBatchTaskConfig> extends JavaBatchTask {
 	/** task configuration */
-	private final T taskConfig;
+	private T taskConfig;
 
-	/**
-	 * constructor
-	 */
-	public ToolsBatchTask() {
-		super();
+	@Override
+	public void onConfigureTask(Project project) {
+		super.onConfigureTask(project);
 
 		getLogger().info("load task {}.", getName());
 
@@ -52,34 +50,22 @@ public abstract class ToolsBatchTask<T extends ToolsBatchTaskConfig> extends Jav
 		getLogger().info("properties value = {}", props);
 		taskConfig = createToolsBatchConfig(props);
 
+		// configure task settings.
 		setDescription(taskConfig.getDescription());
-	}
 
-	@Override
-	protected void configureJavaExecSpec(JavaExecSpec spec) {
-		spec.getMainClass().set(taskConfig.getMainClass());
+		// configure Java execution task settings.
+		getMainClass().set(taskConfig.getMainClass());
 
-		ifExists(taskConfig.getArgs(), v -> spec.args(v));
+		ifExists(taskConfig.getArgs(), v -> args(v));
+
 		if (taskConfig.isUseStandardInput()) {
-			spec.setStandardInput(System.in);
+			setStandardInput(System.in);
 		}
 	}
 
 	/**
-	 * If the value exists, the process is executed.
-	 * @param <V> value type.
-	 * @param value the value.
-	 * @param process execute process.
-	 */
-	protected <V> void ifExists(List<V> value, Consumer<List<V>> process) {
-		if (null != value && !value.isEmpty()) {
-			process.accept(value);
-		}
-	}
-
-	/**
-	 * get a configuration instance.
-	 * @return configuration instance.
+	 * Get a task configuration instance.
+	 * @return task configuration instance.
 	 */
 	@Internal
 	protected T getTaskConfig() {
@@ -104,7 +90,7 @@ public abstract class ToolsBatchTask<T extends ToolsBatchTaskConfig> extends Jav
 	}
 
 	/**
-	 * load property files.
+	 * Load property files.
 	 *
 	 * <p>
 	 * Reads the property file of the task name that exists in the package location of this class.
@@ -122,6 +108,18 @@ public abstract class ToolsBatchTask<T extends ToolsBatchTaskConfig> extends Jav
 			return PropertyFileUtil.load(input);
 		} catch (IOException e) {
 			throw new RuntimeException("An exception occurred while reading the property file. resource file: " + propertyResource, e);
+		}
+	}
+
+	/**
+	 * If the value exists, the process is executed.
+	 * @param <V> value type.
+	 * @param value the value.
+	 * @param process execute process.
+	 */
+	protected <V> void ifExists(List<V> value, Consumer<List<V>> process) {
+		if (null != value && !value.isEmpty()) {
+			process.accept(value);
 		}
 	}
 }

@@ -18,7 +18,6 @@ package org.iplass.mtp.dev.gradle;
 import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
@@ -27,13 +26,13 @@ import org.gradle.api.tasks.SourceSet;
 import org.gradle.process.JavaExecSpec;
 
 /**
- * Superclass of the javaexec task for executing batches.
+ * Superclass of the JavaExec task for executing batches.
  *
  * @author SEKIGUCHI Naoya
  */
 public abstract class JavaBatchTask extends AbstractTask {
 	/**
-	 * get service-config xml path.
+	 * Get service-config xml path.
 	 *
 	 * <p>
 	 * File path or classpath resource.
@@ -43,16 +42,14 @@ public abstract class JavaBatchTask extends AbstractTask {
 	 */
 	@Input
 	@Optional
-	abstract protected Property<String> getServiceConfig();
+	protected abstract Property<String> getServiceConfig();
 
-	/**
-	 * default constructor.
-	 */
-	public JavaBatchTask() {
-		super();
+	@Override
+	public void onConfigureTask(Project project) {
+		super.onConfigureTask(project);
 
 		// depends classes task. because use classpath resource service-config.
-		dependsOn(getProject().getTasks().getByPath(JavaPlugin.CLASSES_TASK_NAME));
+		dependsOn(project.getTasks().named(JavaPlugin.CLASSES_TASK_NAME));
 	}
 
 	@Override
@@ -74,38 +71,24 @@ public abstract class JavaBatchTask extends AbstractTask {
 		}
 	}
 
-	@Override
-	protected void projectAfterEvaluate(Project project) {
-		configureJavaExecSpecInner(this);
-	}
-
 	/**
-	 * javaexec configure. internal use.
+	 * Configure Java execution settings on task action.
+	 *
 	 * @param spec JavaExecSpec
 	 */
-	private void configureJavaExecSpecInner(JavaExecSpec spec) {
-		JavaPluginExtension javaPluginExtension = getProject().getExtensions().getByType(JavaPluginExtension.class);
-
+	protected void configureJavaExecSpecOnTaskAction(JavaExecSpec spec) {
 		spec.getJvmArguments().add("-Dbatch.language=" + getLanguage());
 
 		String serviceConfigPath = getServiceConfigPath();
 		if (null != serviceConfigPath) {
-			spec.getJvmArguments().add("-Dmtp.config=" + getServiceConfigPath());
+			spec.getJvmArguments().add("-Dmtp.config=" + serviceConfigPath);
 		}
 
 		if (getJvmArgs() != null && !getJvmArgs().isEmpty()) {
 			spec.getJvmArguments().addAll(getJvmArgs());
 		}
 
-		FileCollection classpathFiles = getPluginExtension().getClasspath().isEmpty()
-				// src/main/* and configurations.runtimeClasspath
-				? javaPluginExtension.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME).getRuntimeClasspath()
-						// set extension value
-						: getPluginExtension().getClasspath();
-
-		classpathFiles.forEach(f -> spec.classpath(f));
-
-		configureJavaExecSpec(spec);
+		spec.setClasspath(getTaskRuntimeClasspath());
 	}
 
 	/**
@@ -116,6 +99,8 @@ public abstract class JavaBatchTask extends AbstractTask {
 		if (!getTemporaryDir().mkdirs()) {
 			getLogger().warn("Failed to create temporary directory: " + getTemporaryDir().getAbsolutePath());
 		}
+
+		configureJavaExecSpecOnTaskAction(this);
 	}
 
 	/**
@@ -128,11 +113,6 @@ public abstract class JavaBatchTask extends AbstractTask {
 	protected void afterTask() {
 	}
 
-	/**
-	 * Configure Java execution settings.
-	 * @param spec JavaExecSpec
-	 */
-	protected abstract void configureJavaExecSpec(JavaExecSpec spec);
 
 	/**
 	 * Get display language.
@@ -143,23 +123,46 @@ public abstract class JavaBatchTask extends AbstractTask {
 	 *
 	 * @return display language
 	 */
+	@UseWithinTaskAction
 	@Internal
 	protected String getLanguage() {
-		return getPluginExtension().getLanguage().getOrElse("system");
+		return getRootPluginExtension().getLanguage().getOrElse("system");
 	}
 
 	/**
-	 * Get Service-Config file path.
+	 * Get service-config xml path.
 	 *
 	 * <p>
 	 * If set as a task property, the task property takes precedence.
 	 * </p>
 	 *
-	 * @return Service-Config file path
+	 * @return service-config xml path
 	 */
+	@UseWithinTaskAction
 	@Internal
 	protected String getServiceConfigPath() {
-		return getServiceConfig().getOrElse(getPluginExtension().getServiceConfig().getOrNull());
+		return getServiceConfig().getOrElse(getRootPluginExtension().getServiceConfig().getOrNull());
+	}
+
+	/**
+	 * Get task runtime classpath.
+	 *
+	 * <p>
+	 * If the classpath is set in the {@link RootPluginExtension} extension, it takes precedence.
+	 * </p>
+	 *
+	 * @return runtime classpath
+	 */
+	@UseWithinTaskAction
+	@Internal
+	protected FileCollection getTaskRuntimeClasspath() {
+		FileCollection extensionClasspath = getRootPluginExtension().getClasspath();
+
+		if (extensionClasspath != null && !extensionClasspath.isEmpty()) {
+			return extensionClasspath;
+		}
+
+		return getJavaPluginExtension().getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME).getRuntimeClasspath();
 	}
 
 	/**

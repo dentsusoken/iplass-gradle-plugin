@@ -70,7 +70,6 @@ public class ToolsBatchTaskConfig {
 
 		this.args = list("args", Collections.emptyList());
 		this.useStandardInput = getValue("useStandardInput", v -> Boolean.valueOf(v), Boolean.FALSE);
-
 	}
 
 	/**
@@ -160,7 +159,7 @@ public class ToolsBatchTaskConfig {
 	 * @return list value of property or default value.
 	 */
 	protected List<String> list(String baseKey, List<String> defaultValue) {
-		List<String> list = new ArrayList<String>();
+		List<String> list = new ArrayList<>();
 		for (int i = 0; true; i++) {
 			String k = new StringBuilder(baseKey).append(".").append(i).toString();
 			String v = props.getProperty(k);

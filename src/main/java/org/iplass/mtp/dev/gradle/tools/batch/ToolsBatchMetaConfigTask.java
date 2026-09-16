@@ -25,13 +25,14 @@ import java.util.Properties;
 import org.gradle.api.Project;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
-import org.gradle.process.JavaExecSpec;
 import org.iplass.mtp.dev.gradle.PropertyFileUtil;
 import org.iplass.mtp.dev.gradle.RootPlugin;
+import org.iplass.mtp.dev.gradle.UseWithinTaskAction;
 
 /**
- * A task that executes the processing of the tools batch that sets the vmargs in meta.config.
+ * A task that executes the processing of the tools batch that sets the system property meta.config.
  *
  * <p>
  * If a property value contains any of the {@link ReplaceKeys} managed keywords, that value will be replaced.
@@ -40,40 +41,23 @@ import org.iplass.mtp.dev.gradle.RootPlugin;
  * @author SEKIGUCHI Naoya
  */
 public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatchMetaConfigTaskConfig> {
-	/** tenantId obtained {@link org.iplass.mtp.dev.gradle.RootPluginExtension#getTenantId()} */
-	private String tenantId;
-
 	/**
 	 * @return meta.source property value in the meta configuration file.
 	 */
 	@Input
 	@Optional
-	abstract protected ListProperty<String> getSource();
+	protected abstract ListProperty<String> getSource();
 
 	@Override
-	protected void configureJavaExecSpec(JavaExecSpec spec) {
-		super.configureJavaExecSpec(spec);
+	public void onConfigureTask(Project project) {
+		super.onConfigureTask(project);
 
-		spec.getJvmArguments().add("-Dmeta.config=" + getPropertyFile().getAbsolutePath());
-	}
-
-	@Override
-	protected void projectAfterEvaluate(Project project) {
-		super.projectAfterEvaluate(project);
-		// Extensions must not be referenced while a TaskAction is running.
-		if (getPluginExtension().getTenantId().isPresent()) {
-			this.tenantId = String.valueOf(getPluginExtension().getTenantId().get());
-		}
+		getJvmArguments().add("-Dmeta.config=" + getPropertyFile().getAbsolutePath());
 	}
 
 	@Override
 	protected void beforeTask() {
 		super.beforeTask();
-
-		if (null == tenantId) {
-			throw new IllegalStateException(
-					"tenantId is not set. Please set the tenantId property for the " + RootPlugin.EXTENSION_NAME + " extension.");
-		}
 
 		initializeInputPropertiesFile();
 	}
@@ -81,6 +65,27 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 	@Override
 	protected ToolsBatchMetaConfigTaskConfig createToolsBatchConfig(Properties props) {
 		return new ToolsBatchMetaConfigTaskConfig(props);
+	}
+
+	/**
+	 * Get Tenant Id.
+	 *
+	 * <p>
+	 * tenantId is required to be set in the {@link RootPlugin} extension. If it is not set, an {@link IllegalStateException} will be thrown.
+	 * </p>
+	 *
+	 * @return Tenant Id
+	 * @throws IllegalStateException if tenantId is not set in the {@link RootPlugin} extension.
+	 */
+	@UseWithinTaskAction
+	@Internal
+	protected String getTenantId() {
+		if (!getRootPluginExtension().getTenantId().isPresent()) {
+			throw new IllegalStateException(
+					"tenantId is not set. Please set the tenantId property for the " + RootPlugin.EXTENSION_NAME + " extension.");
+		}
+
+		return getRootPluginExtension().getTenantId().map(String::valueOf).getOrElse("");
 	}
 
 	/**
@@ -97,13 +102,12 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 
 		getLogger().info("before config = {}", config);
 		// replacement "{tenantId}", "{source}" keywords.
-		replaceConfigValue(config, ReplaceKeys.TENANT_ID, tenantId);
+		replaceConfigValue(config, ReplaceKeys.TENANT_ID, getTenantId());
 		replaceConfigValue(config, ReplaceKeys.SOURCE, String.join(",", getSource().getOrElse(Collections.emptyList())));
 		getLogger().info("after config = {}", config);
 
 		PropertyFileUtil.save(getPropertyFile(), config);
 	}
-
 
 	/**
 	 * Get the property file used as the value of the {@code meta.config} system property.
@@ -128,7 +132,6 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 	 */
 	private void replaceConfigValue(Map<String, String> config, String target, String replaceValue) {
 		String checkKey = "{" + target + "}";
-		String replaceKey = "\\{" + target + "\\}";
 
 		for (String key : config.keySet()) {
 			String value = config.get(key);
@@ -137,12 +140,12 @@ public abstract class ToolsBatchMetaConfigTask extends ToolsBatchTask<ToolsBatch
 				continue;
 			}
 
-			config.put(key, value.replaceAll(replaceKey, replaceValue));
+			config.put(key, value.replace(checkKey, replaceValue));
 		}
 	}
 
 	/**
-	 * replace keys
+	 * Replace keys.
 	 */
 	public static final class ReplaceKeys {
 		/** tenant id */

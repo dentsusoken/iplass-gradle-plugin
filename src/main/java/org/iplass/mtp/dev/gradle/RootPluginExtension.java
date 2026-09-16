@@ -16,7 +16,6 @@
 package org.iplass.mtp.dev.gradle;
 
 import org.gradle.api.file.ConfigurableFileCollection;
-import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.provider.Property;
 
 /**
@@ -24,7 +23,7 @@ import org.gradle.api.provider.Property;
  *
  * @author SEKIGUCHI Naoya
  */
-public interface RootPluginExtension extends ExtensionAware {
+public interface RootPluginExtension {
 	/**
 	 * get service-config xml path.
 	 *
